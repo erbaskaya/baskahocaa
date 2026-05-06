@@ -655,21 +655,41 @@
     `).join("") : `<tr><td class="empty" colspan="4">Bu ay ödeme kaydı yok.</td></tr>`;
   }
 
-  function downloadBackup() {
+  function makeBackupJson() {
     const payload = {
       app: "baskahocaa",
+      version: 2,
       exportedAt: new Date().toISOString(),
       data: state
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    return JSON.stringify(payload, null, 2);
+  }
+
+  function downloadBackup() {
+    const filename = `baskahocaa-yedek-${todayISO()}.json`;
+    const json = makeBackupJson();
+
+    // Android APK içinde normal <a download> / Blob indirme her cihazda çalışmayabiliyor.
+    // Bu yüzden APK için native Android köprüsü kullanıyoruz.
+    if (window.BaskahocaaAndroid && typeof window.BaskahocaaAndroid.saveBackup === "function") {
+      window.BaskahocaaAndroid.saveBackup(json, filename);
+      showToast("Yedek dosyası İndirilenler klasörüne kaydediliyor.");
+      return;
+    }
+
+    // Tarayıcı / Windows sürümü için klasik indirme yöntemi.
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `baskahocaa-yedek-${todayISO()}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    // Son çare: kullanıcı yedeği kopyalayabilsin diye konsola da yazıyoruz.
+    console.log("BASKAHOCAA_YEDEK_JSON", json);
   }
 
   function restoreBackup(event) {
