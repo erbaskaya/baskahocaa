@@ -8,6 +8,7 @@
   let state = loadState();
   let lessonMonthFilter = currentMonth();
   let paymentMonthFilter = currentMonth();
+  let weeklySelectedDate = todayISO();
   let studentSearchTerm = "";
 
   const $ = (id) => document.getElementById(id);
@@ -45,6 +46,24 @@
   function todayISO() {
     const now = new Date();
     return dateToISO(now);
+  }
+
+  function addDays(date, days) {
+    const copy = new Date(date);
+    copy.setDate(copy.getDate() + days);
+    return copy;
+  }
+
+  function getWeekStartISO(dateText) {
+    const date = dateText ? parseDate(dateText) : new Date();
+    const day = date.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    return dateToISO(addDays(date, mondayOffset));
+  }
+
+  function getWeekDates(dateText) {
+    const start = parseDate(getWeekStartISO(dateText));
+    return Array.from({ length: 7 }, (_, index) => dateToISO(addDays(start, index)));
   }
 
   function dateToISO(date) {
@@ -167,6 +186,7 @@
     $("lessonDuration").value = 60;
     $("lessonMonth").value = lessonMonthFilter;
     $("paymentMonth").value = paymentMonthFilter;
+    $("weekDate").value = weeklySelectedDate;
   }
 
   function initTabs() {
@@ -276,6 +296,26 @@
     $("paymentMonth").addEventListener("change", (event) => {
       paymentMonthFilter = event.target.value || currentMonth();
       renderPayments();
+    });
+
+    $("weekDate").addEventListener("change", (event) => {
+      weeklySelectedDate = event.target.value || todayISO();
+      renderWeeklyProgram();
+    });
+    $("prevWeekBtn").addEventListener("click", () => {
+      weeklySelectedDate = dateToISO(addDays(parseDate(getWeekStartISO(weeklySelectedDate)), -7));
+      $("weekDate").value = weeklySelectedDate;
+      renderWeeklyProgram();
+    });
+    $("nextWeekBtn").addEventListener("click", () => {
+      weeklySelectedDate = dateToISO(addDays(parseDate(getWeekStartISO(weeklySelectedDate)), 7));
+      $("weekDate").value = weeklySelectedDate;
+      renderWeeklyProgram();
+    });
+    $("todayWeekBtn").addEventListener("click", () => {
+      weeklySelectedDate = todayISO();
+      $("weekDate").value = weeklySelectedDate;
+      renderWeeklyProgram();
     });
 
     $("backupBtn").addEventListener("click", downloadBackup);
@@ -399,6 +439,7 @@
     renderStudentSelect();
     renderStudents();
     renderLessons();
+    renderWeeklyProgram();
     renderPayments();
     renderDashboard();
   }
@@ -474,6 +515,54 @@
         </td>
       </tr>
     `).join("");
+  }
+
+  function renderWeeklyProgram() {
+    const head = $("weeklyProgramHead");
+    const body = $("weeklyProgramBody");
+    const weekDates = getWeekDates(weeklySelectedDate);
+    const weekStart = weekDates[0];
+    const weekEnd = weekDates[6];
+
+    $("weekRangeText").textContent = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+
+    const dayNames = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+    head.innerHTML = `
+      <tr>
+        <th>Saat / Gün</th>
+        ${weekDates.map((date, index) => `<th>${dayNames[index]}<span class="schedule-day-date">${formatDate(date)}</span></th>`).join("")}
+      </tr>
+    `;
+
+    const lessonsOfWeek = state.lessons
+      .filter((lesson) => weekDates.includes(lesson.date))
+      .sort(sortLessons);
+
+    const defaultTimes = [];
+    for (let hour = 8; hour <= 22; hour += 1) {
+      defaultTimes.push(`${String(hour).padStart(2, "0")}:00`);
+    }
+
+    const timeRows = Array.from(new Set([
+      ...defaultTimes,
+      ...lessonsOfWeek.map((lesson) => lesson.time)
+    ])).sort((a, b) => minutesFromTime(a) - minutesFromTime(b));
+
+    body.innerHTML = timeRows.map((time) => {
+      const cells = weekDates.map((date) => {
+        const lessonsInCell = lessonsOfWeek.filter((lesson) => lesson.date === date && lesson.time === time);
+        if (!lessonsInCell.length) return `<td class="schedule-cell"></td>`;
+        return `<td class="schedule-cell has-lesson">${lessonsInCell.map((lesson) => `
+          <button class="lesson-chip" onclick="editLesson('${lesson.id}')" type="button" title="Dersi düzenle">
+            <strong>${escapeHtml(getStudentName(lesson.studentId))}</strong>
+            <span>${lesson.time} - ${timeFromMinutes(getLessonEnd(lesson))}</span>
+            ${lesson.note ? `<em>${escapeHtml(lesson.note)}</em>` : ""}
+          </button>
+        `).join("")}</td>`;
+      }).join("");
+
+      return `<tr><td class="schedule-time">${time}</td>${cells}</tr>`;
+    }).join("");
   }
 
   function renderPayments() {

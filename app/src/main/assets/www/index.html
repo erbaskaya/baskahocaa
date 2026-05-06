@@ -32,6 +32,7 @@
       <button class="tab active" data-tab="dashboard" type="button">Özet</button>
       <button class="tab" data-tab="students" type="button">Öğrenciler</button>
       <button class="tab" data-tab="lessons" type="button">Ders Takvimi</button>
+      <button class="tab" data-tab="weekly" type="button">Haftalık Program</button>
       <button class="tab" data-tab="payments" type="button">Ödeme Takibi</button>
     </nav>
 
@@ -200,6 +201,34 @@
             </div>
           </section>
         </div>
+      </section>
+
+
+      <section class="panel" id="weekly">
+        <section class="box weekly-box">
+          <div class="weekly-hero">
+            <div>
+              <h2>Haftalık Ders Programı</h2>
+              <p>Seçili haftadaki dersleri gün ve saate göre tablo halinde gösterir.</p>
+            </div>
+            <div class="weekly-controls">
+              <button class="btn small muted" id="prevWeekBtn" type="button">Önceki hafta</button>
+              <label class="week-picker">Hafta seç
+                <input id="weekDate" type="date" />
+              </label>
+              <button class="btn small muted" id="todayWeekBtn" type="button">Bu hafta</button>
+              <button class="btn small muted" id="nextWeekBtn" type="button">Sonraki hafta</button>
+            </div>
+          </div>
+          <div class="week-range" id="weekRangeText"></div>
+          <div class="schedule-wrap">
+            <table class="schedule-table">
+              <thead id="weeklyProgramHead"></thead>
+              <tbody id="weeklyProgramBody"></tbody>
+            </table>
+          </div>
+          <p class="weekly-note">Bu tabloda ödeme bilgisi gösterilmez. Sadece ders programı görünür.</p>
+        </section>
       </section>
 
       <section class="panel" id="payments">
