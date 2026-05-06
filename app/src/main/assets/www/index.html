@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>baskahocaa</title>
+  <meta name="theme-color" content="#ef6b45" />
+  <meta name="description" content="baskahocaa öğrenci, ders takvimi ve ödeme takip uygulaması" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/logo-small.png" alt="baskahocaa logo" class="logo" />
+        <div>
+          <h1>baskahocaa</h1>
+          <p>Özel ders ve eğitim koçluğu takip paneli</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="backupBtn" type="button">Yedek indir</button>
+        <label class="btn ghost file-label">
+          Yedek yükle
+          <input id="restoreInput" type="file" accept="application/json" hidden />
+        </label>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Uygulama menüsü">
+      <button class="tab active" data-tab="dashboard" type="button">Özet</button>
+      <button class="tab" data-tab="students" type="button">Öğrenciler</button>
+      <button class="tab" data-tab="lessons" type="button">Ders Takvimi</button>
+      <button class="tab" data-tab="payments" type="button">Ödeme Takibi</button>
+    </nav>
+
+    <main>
+      <section class="panel active" id="dashboard">
+        <div class="cards">
+          <article class="stat-card">
+            <span>Toplam öğrenci</span>
+            <strong id="statStudents">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Bu ay ders</span>
+            <strong id="statMonthLessons">0</strong>
+          </article>
+          <article class="stat-card success">
+            <span>Bu ay ödenen</span>
+            <strong id="statPaid">₺0</strong>
+          </article>
+          <article class="stat-card danger">
+            <span>Bu ay bekleyen</span>
+            <strong id="statUnpaid">₺0</strong>
+          </article>
+        </div>
+
+        <div class="grid two">
+          <section class="box">
+            <div class="box-head">
+              <h2>Yaklaşan dersler</h2>
+              <span class="hint">Tarih ve saate göre sıralı</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Gün</th><th>Saat</th><th>Öğrenci</th><th>Ücret</th></tr>
+                </thead>
+                <tbody id="upcomingLessonsBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="box">
+            <div class="box-head">
+              <h2>Bu ay ödeme özeti</h2>
+              <span class="hint" id="dashboardMonthText"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Öğrenci</th><th>Ders</th><th>Ödenen</th><th>Kalan</th></tr>
+                </thead>
+                <tbody id="dashboardPaymentBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" id="students">
+        <div class="grid two">
+          <section class="box">
+            <div class="box-head">
+              <h2>Öğrenci ekle / düzenle</h2>
+              <span class="hint">Saat ücretini öğrenci bazlı kaydedebilirsin.</span>
+            </div>
+            <form id="studentForm" class="form">
+              <input type="hidden" id="studentId" />
+              <label>Öğrenci adı soyadı
+                <input id="studentName" type="text" placeholder="Örn: Ayşe Yılmaz" required />
+              </label>
+              <div class="form-row">
+                <label>Telefon
+                  <input id="studentPhone" type="tel" placeholder="05xx xxx xx xx" />
+                </label>
+                <label>Seviye / sınıf
+                  <input id="studentLevel" type="text" placeholder="Örn: 8. sınıf / TYT" />
+                </label>
+              </div>
+              <label>Saatlik ders ücreti
+                <input id="studentFee" type="number" min="0" step="0.01" placeholder="Örn: 750" />
+              </label>
+              <label>Not
+                <textarea id="studentNote" rows="3" placeholder="Öğrenciyle ilgili kısa not"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="btn primary" type="submit">Öğrenciyi kaydet</button>
+                <button class="btn muted" id="studentCancelBtn" type="button">Temizle</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="box">
+            <div class="box-head">
+              <h2>Öğrenci listesi</h2>
+              <input class="mini-input" id="studentSearch" type="search" placeholder="Öğrenci ara..." />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Öğrenci</th><th>Seviye</th><th>Ücret</th><th>İşlem</th></tr>
+                </thead>
+                <tbody id="studentBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" id="lessons">
+        <div class="grid two">
+          <section class="box">
+            <div class="box-head">
+              <h2>Ders günü ve saati ekle</h2>
+              <span class="hint">Aynı saat doluysa uygulama uyarır.</span>
+            </div>
+            <form id="lessonForm" class="form">
+              <input type="hidden" id="lessonId" />
+              <label>Öğrenci
+                <select id="lessonStudent" required></select>
+              </label>
+              <div class="form-row three">
+                <label>Tarih
+                  <input id="lessonDate" type="date" required />
+                </label>
+                <label>Saat
+                  <input id="lessonTime" type="time" required />
+                </label>
+                <label>Süre dakika
+                  <input id="lessonDuration" type="number" min="15" step="15" value="60" required />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>Ders ücreti
+                  <input id="lessonFee" type="number" min="0" step="0.01" placeholder="Öğrenciden otomatik gelir" />
+                </label>
+                <label class="checkline">
+                  <input id="lessonPaid" type="checkbox" />
+                  <span>Ders ücreti ödendi</span>
+                </label>
+              </div>
+              <label>Ders notu
+                <textarea id="lessonNote" rows="3" placeholder="Örn: Türkçe paragraf, deneme analizi"></textarea>
+              </label>
+              <div id="conflictBox" class="alert hidden"></div>
+              <div class="form-actions">
+                <button class="btn primary" type="submit">Dersi kaydet</button>
+                <button class="btn muted" id="lessonCancelBtn" type="button">Temizle</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="box">
+            <div class="box-head">
+              <h2>Ders tablosu</h2>
+              <div class="inline-filters">
+                <input class="mini-input" id="lessonMonth" type="month" />
+                <button class="btn small muted" id="showAllLessons" type="button">Tümü</button>
+              </div>
+            </div>
+            <div class="table-wrap large-table">
+              <table>
+                <thead>
+                  <tr><th>Tarih</th><th>Gün</th><th>Saat</th><th>Öğrenci</th><th>Süre</th><th>Ücret</th><th>Durum</th><th>İşlem</th></tr>
+                </thead>
+                <tbody id="lessonBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" id="payments">
+        <section class="box">
+          <div class="box-head stack-mobile">
+            <div>
+              <h2>Aylık ödeme takibi</h2>
+              <span class="hint">Ders bazında ödendi kutusunu işaretleyebilirsin.</span>
+            </div>
+            <input class="mini-input" id="paymentMonth" type="month" />
+          </div>
+
+          <div class="payment-summary" id="paymentSummaryCards"></div>
+
+          <div class="table-wrap large-table">
+            <table>
+              <thead>
+                <tr><th>Tarih</th><th>Saat</th><th>Öğrenci</th><th>Ders ücreti</th><th>Ödendi</th><th>Not</th><th>İşlem</th></tr>
+              </thead>
+              <tbody id="paymentBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="box mt">
+          <div class="box-head">
+            <h2>Öğrenci bazlı aylık tablo</h2>
+            <span class="hint">Ödenen ve ödenmeyenleri topluca gösterir.</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Öğrenci</th><th>Ders sayısı</th><th>Toplam</th><th>Ödenen</th><th>Ödenmeyen</th></tr>
+              </thead>
+              <tbody id="paymentSummaryBody"></tbody>
+              <tfoot>
+                <tr><th>Genel toplam</th><th id="totalLessonsFoot">0</th><th id="totalAmountFoot">₺0</th><th id="totalPaidFoot">₺0</th><th id="totalUnpaidFoot">₺0</th></tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
