@@ -343,6 +343,15 @@
     });
 
     $("backupBtn").addEventListener("click", downloadBackup);
+    $("restoreBtn").addEventListener("click", () => {
+      const input = $("restoreInput");
+      if (!input) {
+        alert("Yedek yükleme alanı bulunamadı.");
+        return;
+      }
+      input.value = "";
+      input.click();
+    });
     $("restoreInput").addEventListener("change", restoreBackup);
   }
 
