@@ -181,6 +181,30 @@
     showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2300);
   }
 
+  function applyResponsiveTableLabels() {
+    qsa("table:not(.schedule-table)").forEach((table) => {
+      const labels = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent.trim());
+      table.querySelectorAll("tbody tr").forEach((row) => {
+        Array.from(row.children).forEach((cell, index) => {
+          if (cell.classList.contains("empty")) return;
+          cell.setAttribute("data-label", labels[index] || "");
+        });
+      });
+
+      const footLabels = labels.length ? labels : Array.from(table.querySelectorAll("tfoot th")).map((th) => th.textContent.trim());
+      table.querySelectorAll("tfoot tr").forEach((row) => {
+        Array.from(row.children).forEach((cell, index) => {
+          const ownText = cell.id ? "" : cell.textContent.trim();
+          cell.setAttribute("data-label", footLabels[index] || ownText || "Toplam");
+        });
+      });
+    });
+  }
+
+  function refreshMobileLabelsSoon() {
+    window.requestAnimationFrame(applyResponsiveTableLabels);
+  }
+
   function fillInitialDates() {
     $("lessonDate").value = todayISO();
     $("lessonDuration").value = 60;
@@ -442,6 +466,7 @@
     renderWeeklyProgram();
     renderPayments();
     renderDashboard();
+    refreshMobileLabelsSoon();
   }
 
   function renderStudentSelect() {
@@ -486,6 +511,7 @@
         </td>
       </tr>
     `).join("");
+    refreshMobileLabelsSoon();
   }
 
   function renderLessons() {
@@ -515,6 +541,7 @@
         </td>
       </tr>
     `).join("");
+    refreshMobileLabelsSoon();
   }
 
   function renderWeeklyProgram() {
@@ -562,6 +589,36 @@
       }).join("");
 
       return `<tr><td class="schedule-time">${time}</td>${cells}</tr>`;
+    }).join("");
+
+    renderWeeklyMobileList(weekDates, lessonsOfWeek, dayNames);
+  }
+
+  function renderWeeklyMobileList(weekDates, lessonsOfWeek, dayNames) {
+    const target = $("weeklyMobileList");
+    if (!target) return;
+
+    target.innerHTML = weekDates.map((date, index) => {
+      const lessonsOfDay = lessonsOfWeek
+        .filter((lesson) => lesson.date === date)
+        .sort(sortLessons);
+
+      const body = lessonsOfDay.length
+        ? lessonsOfDay.map((lesson) => `
+          <button class="mobile-lesson-card" onclick="editLesson('${lesson.id}')" type="button">
+            <strong>${escapeHtml(getStudentName(lesson.studentId))}</strong>
+            <span>${lesson.time} - ${timeFromMinutes(getLessonEnd(lesson))}</span>
+            ${lesson.note ? `<em>${escapeHtml(lesson.note)}</em>` : ""}
+          </button>
+        `).join("")
+        : `<div class="mobile-day-empty">Bu gün ders yok.</div>`;
+
+      return `
+        <article class="mobile-day-card">
+          <div class="mobile-day-head">${dayNames[index]} <span>${formatDate(date)}</span></div>
+          <div class="mobile-day-body">${body}</div>
+        </article>
+      `;
     }).join("");
   }
 
@@ -616,6 +673,7 @@
     $("totalAmountFoot").textContent = fmtCurrency.format(totals.total);
     $("totalPaidFoot").textContent = fmtCurrency.format(totals.paid);
     $("totalUnpaidFoot").textContent = fmtCurrency.format(totals.unpaid);
+    refreshMobileLabelsSoon();
   }
 
   function renderDashboard() {
@@ -653,6 +711,7 @@
         <td>${fmtCurrency.format(row.unpaid)}</td>
       </tr>
     `).join("") : `<tr><td class="empty" colspan="4">Bu ay ödeme kaydı yok.</td></tr>`;
+    refreshMobileLabelsSoon();
   }
 
   function makeBackupJson() {
